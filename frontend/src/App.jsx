@@ -363,7 +363,6 @@ function App() {
             <button
               type="button"
               onClick={() => {
-                if (playbackState.isPlaying) pause();
                 if (playbackState.isPlaying) playbackControls.pause();
                 setViewMode('ecg-fundamentals');
               }}
@@ -412,7 +411,6 @@ function App() {
             <button
               type="button"
               onClick={() => {
-                if (playbackState.isPlaying) pause();
                 if (playbackState.isPlaying) playbackControls.pause();
                 setViewMode('docs');
               }}
@@ -1983,7 +1981,6 @@ function App() {
           <DocumentationPanel
             onBack={() => setViewMode('workspace')}
             onOpenEvaluation={() => {
-              if (playbackState.isPlaying) pause();
               if (playbackState.isPlaying) playbackControls.pause();
               setViewMode('evaluation');
             }}
