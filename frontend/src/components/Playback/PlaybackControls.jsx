@@ -66,7 +66,10 @@ export default function PlaybackControls({
 
   const safeCurrentTime = Number.isFinite(currentTime) ? currentTime : 0;
   const safeDuration = Number.isFinite(duration) ? duration : 10;
-  const currentBeatText = beatIndex != null && Number.isFinite(beatIndex) ? beatIndex + 1 : '--';
+  const currentBeatText =
+    beatIndex != null && Number.isFinite(beatIndex)
+      ? beatIndex + 1
+      : (totalBeats > 0 ? 1 : '--');
   const totalBeatText = totalBeats || '--';
 
   const baseBtnStyle = {

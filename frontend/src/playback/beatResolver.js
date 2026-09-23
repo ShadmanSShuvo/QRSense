@@ -4,7 +4,7 @@
 
 /**
  * resolveBeat(currentSampleIndex, rPeaks, fs)
- * 
+ *
  * @param {number} currentSampleIndex - current position in samples
  * @param {number[]} rPeaks - array of R-peak sample indices (sorted ascending)
  * @param {number} fs - sampling frequency
@@ -42,29 +42,32 @@ export function resolveBeat(currentSampleIndex, rPeaks, fs) {
 
   // After loop, 'right' is largest index < currentSampleIndex
   // 'left' is smallest index > currentSampleIndex
-  
+
   let prevPeakIndex = right >= 0 ? right : null;
   let nextPeakIndex = left < rPeaks.length ? left : null;
-  
+
   let beatIndex = prevPeakIndex;
   let relativeTimeSec = 0;
-  
+
   if (prevPeakIndex === null) {
     // Before first peak
     relativeTimeSec = (currentSampleIndex - rPeaks[nextPeakIndex]) / fs;
   } else if (nextPeakIndex === null) {
     // After last peak
+    beatIndex = prevPeakIndex;
     relativeTimeSec = (currentSampleIndex - rPeaks[prevPeakIndex]) / fs;
   } else {
     // Between two peaks, find closest
     const distPrev = currentSampleIndex - rPeaks[prevPeakIndex];
     const distNext = rPeaks[nextPeakIndex] - currentSampleIndex;
     if (distPrev <= distNext) {
+      beatIndex = prevPeakIndex;
       relativeTimeSec = distPrev / fs;
     } else {
+      beatIndex = nextPeakIndex;
       relativeTimeSec = -distNext / fs;
     }
   }
-  
+
   return { prevPeakIndex, nextPeakIndex, beatIndex, relativeTimeSec };
 }

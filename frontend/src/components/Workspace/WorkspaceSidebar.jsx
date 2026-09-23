@@ -649,9 +649,11 @@ export default function WorkspaceSidebar({
               gap: '0.3rem',
             }}
             title="Focus Current Beat"
+            title={`Focus Current Beat #${selectedBeatIndex + 1}`}
           >
             <ZoomIn size={12} />
             <span>Focus Beat</span>
+            <span>Focus Beat #{selectedBeatIndex + 1}</span>
           </button>
         </div>
 

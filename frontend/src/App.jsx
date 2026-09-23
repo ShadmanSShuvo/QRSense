@@ -174,6 +174,18 @@ function App() {
     return () => clearTimeout(timer);
   }, [workspaceView]);
 
+  // Synchronize selectedBeatIndex with playback engine position
+  useEffect(() => {
+    if (
+      playbackState.beatIndex !== null &&
+      playbackState.beatIndex !== undefined &&
+      data?.delineation?.length
+    ) {
+      const bounded = Math.max(0, Math.min(data.delineation.length - 1, playbackState.beatIndex));
+      setSelectedBeatIndex((prev) => (prev !== bounded ? bounded : prev));
+    }
+  }, [playbackState.beatIndex, data?.delineation?.length]);
+
   // Fetch available records on mount
   useEffect(() => {
     fetch('http://localhost:8000/api/records')
@@ -243,19 +255,39 @@ function App() {
     setXRange([0, DURATION]);
   }, []);
 
+  const handleSelectBeat = useCallback(
+    (idx, shouldSeek = true) => {
+      if (!data?.delineation?.length) return;
+      const boundedIdx = Math.max(0, Math.min(data.delineation.length - 1, idx));
+      setSelectedBeatIndex(boundedIdx);
+      focusBeat(boundedIdx);
+      if (shouldSeek) {
+        const b = data.delineation[boundedIdx];
+        if (b) {
+          const center =
+            b.r_time !== null && b.r_time !== undefined
+              ? b.r_time
+              : (b.dominant_deflection_index ? b.dominant_deflection_index / fs : b.pt_qrs_index / fs);
+          if (center !== undefined && !isNaN(center)) {
+            playbackControls.seek(center);
+          }
+        }
+      }
+    },
+    [data, fs, focusBeat, playbackControls]
+  );
+
   const handlePrevBeat = useCallback(() => {
     if (!data?.delineation?.length) return;
     const prevIdx = Math.max(0, selectedBeatIndex - 1);
-    setSelectedBeatIndex(prevIdx);
-    focusBeat(prevIdx);
-  }, [data, selectedBeatIndex, focusBeat]);
+    handleSelectBeat(prevIdx, true);
+  }, [data, selectedBeatIndex, handleSelectBeat]);
 
   const handleNextBeat = useCallback(() => {
     if (!data?.delineation?.length) return;
     const nextIdx = Math.min(data.delineation.length - 1, selectedBeatIndex + 1);
-    setSelectedBeatIndex(nextIdx);
-    focusBeat(nextIdx);
-  }, [data, selectedBeatIndex, focusBeat]);
+    handleSelectBeat(nextIdx, true);
+  }, [data, selectedBeatIndex, handleSelectBeat]);
 
   const handlePlotClick = useCallback(
     (evt) => {
@@ -264,9 +296,10 @@ function App() {
       let closestIdx = 0;
       let minDiff = Infinity;
       data.delineation.forEach((b, idx) => {
-        const refTime = b.r_time !== null && b.r_time !== undefined
-          ? b.r_time
-          : (b.dominant_deflection_index ? b.dominant_deflection_index / fs : b.pt_qrs_index / fs);
+        const refTime =
+          b.r_time !== null && b.r_time !== undefined
+            ? b.r_time
+            : (b.dominant_deflection_index ? b.dominant_deflection_index / fs : b.pt_qrs_index / fs);
         const diff = Math.abs(refTime - clickX);
         if (diff < minDiff) {
           minDiff = diff;
@@ -274,10 +307,10 @@ function App() {
         }
       });
       if (minDiff < 0.8) {
-        setSelectedBeatIndex(closestIdx);
+        handleSelectBeat(closestIdx, true);
       }
     },
-    [data, fs]
+    [data, fs, handleSelectBeat]
   );
 
   const handleRelayout = useCallback((event) => {
@@ -643,7 +676,7 @@ function App() {
           <BeatInspectionPanel
             data={data}
             selectedBeatIndex={selectedBeatIndex}
-            setSelectedBeatIndex={setSelectedBeatIndex}
+            setSelectedBeatIndex={handleSelectBeat}
             activeStage={activeStage}
             fs={fs}
             focusBeat={focusBeat}

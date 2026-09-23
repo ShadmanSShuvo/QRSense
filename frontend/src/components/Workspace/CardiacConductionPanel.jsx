@@ -10,6 +10,7 @@ import { HeartPulse, Activity, Zap, RotateCcw } from 'lucide-react';
 function formatPhase(phase) {
   if (!phase) return 'Isoelectric Baseline';
   switch (phase) {
+    case 'atrial_activation':
     case 'atrial_conduction':
       return 'Atrial Depolarization (P-Wave)';
     case 'av_delay':
@@ -29,6 +30,7 @@ function formatPhase(phase) {
  */
 function getPhaseColor(phase) {
   switch (phase) {
+    case 'atrial_activation':
     case 'atrial_conduction':
       return '#38bdf8'; // Cyan
     case 'av_delay':
@@ -238,8 +240,21 @@ export default function CardiacConductionPanel({
               style={{
                 background: currentPhase === 'atrial_conduction' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(30, 41, 59, 0.4)',
                 border: currentPhase === 'atrial_conduction' ? '1px solid #38bdf8' : '1px solid rgba(51, 65, 85, 0.4)',
+                background:
+                  currentPhase === 'atrial_activation' || currentPhase === 'atrial_conduction'
+                    ? 'rgba(56, 189, 248, 0.22)'
+                    : 'rgba(30, 41, 59, 0.4)',
+                border:
+                  currentPhase === 'atrial_activation' || currentPhase === 'atrial_conduction'
+                    ? '1px solid #38bdf8'
+                    : '1px solid rgba(51, 65, 85, 0.4)',
+                boxShadow:
+                  currentPhase === 'atrial_activation' || currentPhase === 'atrial_conduction'
+                    ? '0 0 10px rgba(56, 189, 248, 0.35)'
+                    : 'none',
                 borderRadius: '8px',
                 padding: '0.45rem 0.65rem',
+                transition: 'all 0.15s ease',
               }}
             >
               <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#38bdf8' }}>P Wave</div>
@@ -252,9 +267,12 @@ export default function CardiacConductionPanel({
             <div
               style={{
                 background: currentPhase === 'ventricular_conduction' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(30, 41, 59, 0.4)',
+                background: currentPhase === 'ventricular_conduction' ? 'rgba(239, 68, 68, 0.22)' : 'rgba(30, 41, 59, 0.4)',
                 border: currentPhase === 'ventricular_conduction' ? '1px solid #ef4444' : '1px solid rgba(51, 65, 85, 0.4)',
+                boxShadow: currentPhase === 'ventricular_conduction' ? '0 0 10px rgba(239, 68, 68, 0.35)' : 'none',
                 borderRadius: '8px',
                 padding: '0.45rem 0.65rem',
+                transition: 'all 0.15s ease',
               }}
             >
               <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#f87171' }}>QRS Complex</div>
@@ -267,9 +285,12 @@ export default function CardiacConductionPanel({
             <div
               style={{
                 background: currentPhase === 'repolarization' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(30, 41, 59, 0.4)',
+                background: currentPhase === 'repolarization' ? 'rgba(168, 85, 247, 0.22)' : 'rgba(30, 41, 59, 0.4)',
                 border: currentPhase === 'repolarization' ? '1px solid #a855f7' : '1px solid rgba(51, 65, 85, 0.4)',
+                boxShadow: currentPhase === 'repolarization' ? '0 0 10px rgba(168, 85, 247, 0.35)' : 'none',
                 borderRadius: '8px',
                 padding: '0.45rem 0.65rem',
+                transition: 'all 0.15s ease',
               }}
             >
               <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#c084fc' }}>T Wave</div>
