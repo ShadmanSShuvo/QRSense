@@ -17,6 +17,7 @@ import {
   Sliders,
   Layers,
   Award,
+  HeartPulse,
 } from 'lucide-react';
 import { usePlaybackEngine } from './playback/usePlaybackEngine';
 import { Canvas } from '@react-three/fiber';
@@ -28,6 +29,7 @@ import ECGPlot from './components/ECGPlot/ECGPlot';
 import PlaybackCursor from './components/ECGPlot/PlaybackCursor';
 import EvaluationPanel from './components/Evaluation/EvaluationPanel';
 import DocumentationPanel from './components/Documentation/DocumentationPanel';
+import ECGFundamentals from './components/ECGFundamentals/ECGFundamentals';
 import './index.css';
 
 const DURATION = 10; // seconds
@@ -362,6 +364,31 @@ function App() {
               type="button"
               onClick={() => {
                 if (playbackState.isPlaying) pause();
+                if (playbackState.isPlaying) playbackControls.pause();
+                setViewMode('ecg-fundamentals');
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.45rem 0.85rem',
+                borderRadius: '6px',
+                border: viewMode === 'ecg-fundamentals' ? '1px solid #38bdf8' : 'none',
+                background: viewMode === 'ecg-fundamentals' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                color: viewMode === 'ecg-fundamentals' ? '#38bdf8' : '#94a3b8',
+                fontWeight: viewMode === 'ecg-fundamentals' ? 600 : 500,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <HeartPulse size={15} />
+              ECG Fundamentals
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (playbackState.isPlaying) playbackControls.pause();
                 setViewMode('evaluation');
               }}
               style={{
@@ -386,6 +413,7 @@ function App() {
               type="button"
               onClick={() => {
                 if (playbackState.isPlaying) pause();
+                if (playbackState.isPlaying) playbackControls.pause();
                 setViewMode('docs');
               }}
               style={{
@@ -1931,6 +1959,13 @@ function App() {
         </section>
       </div>
 
+      {/* ───────────────────────── Interactive ECG Fundamentals Educational Panel ───────────────────────── */}
+      {viewMode === 'ecg-fundamentals' && (
+        <div style={{ width: '100%', margin: '0 auto' }}>
+          <ECGFundamentals onOpenWorkspace={() => setViewMode('workspace')} />
+        </div>
+      )}
+
       {/* ───────────────────────── Dedicated Evaluation Benchmark Panel ───────────────────────── */}
       {viewMode === 'evaluation' && (
         <div style={{ width: '100%', margin: '0 auto' }}>
@@ -1949,6 +1984,7 @@ function App() {
             onBack={() => setViewMode('workspace')}
             onOpenEvaluation={() => {
               if (playbackState.isPlaying) pause();
+              if (playbackState.isPlaying) playbackControls.pause();
               setViewMode('evaluation');
             }}
           />
