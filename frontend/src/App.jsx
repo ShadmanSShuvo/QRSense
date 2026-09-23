@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Activity,
@@ -188,7 +189,7 @@ function App() {
 
   // Fetch available records on mount
   useEffect(() => {
-    fetch('http://localhost:8000/api/records')
+    fetch(`${API_URL}/api/records`)
       .then((res) => res.json())
       .then((result) => {
         if (result.records && result.records.length > 0) {
@@ -207,7 +208,7 @@ function App() {
     setXRange([0, DURATION]);
 
     try {
-      const response = await fetch('http://localhost:8000/api/process', {
+      const response = await fetch(`${API_URL}/api/process`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
