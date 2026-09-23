@@ -1,32 +1,19 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Activity,
-  Heart,
-  ActivitySquare,
-  AlertTriangle,
-  CheckCircle2,
   BookOpen,
-  Cpu,
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  ZoomIn,
-  ChevronDown,
-  ChevronUp,
-  Info,
-  Sliders,
-  Layers,
   Award,
   HeartPulse,
 } from 'lucide-react';
 import { usePlaybackEngine } from './playback/usePlaybackEngine';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import HeartModel from './HeartModel';
 import PlaybackControls from './components/Playback/PlaybackControls';
-import PlaybackStats from './components/Playback/PlaybackStats';
 import ECGPlot from './components/ECGPlot/ECGPlot';
 import PlaybackCursor from './components/ECGPlot/PlaybackCursor';
+import WorkspaceSidebar from './components/Workspace/WorkspaceSidebar';
+import DiagnosticBar from './components/Workspace/DiagnosticBar';
+import AlgorithmPipelineBar from './components/Workspace/AlgorithmPipelineBar';
+import BeatInspectionPanel from './components/Workspace/BeatInspectionPanel';
+import CardiacConductionPanel from './components/Workspace/CardiacConductionPanel';
 import EvaluationPanel from './components/Evaluation/EvaluationPanel';
 import DocumentationPanel from './components/Documentation/DocumentationPanel';
 import ECGFundamentals from './components/ECGFundamentals/ECGFundamentals';
@@ -153,6 +140,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('workspace'); // 'workspace' | 'evaluation'
+  const [workspaceView, setWorkspaceView] = useState('standard'); // 'standard' | 'clean' | 'ecg-only'
 
   const [activeStage, setActiveStage] = useState('original');
   const [selectedBeatIndex, setSelectedBeatIndex] = useState(0);
@@ -177,6 +165,14 @@ function App() {
     rPeaks,
     duration: DURATION,
   });
+
+  // Trigger Plotly canvas resize immediately when workspace view changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [workspaceView]);
 
   // Fetch available records on mount
   useEffect(() => {
@@ -329,6 +325,82 @@ function App() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0, alignItems: 'center' }}>
+          {/* Workspace Views Selector: Standard | Clean | ECG Only */}
+          {viewMode === 'workspace' && (
+            <div
+              style={{
+                display: 'inline-flex',
+                background: 'rgba(15, 23, 42, 0.75)',
+                border: '1px solid rgba(51, 65, 85, 0.6)',
+                borderRadius: '8px',
+                padding: '0.25rem',
+                gap: '0.25rem',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setWorkspaceView('standard')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '0.42rem 0.75rem',
+                  borderRadius: '6px',
+                  border: workspaceView === 'standard' ? '1px solid #38bdf8' : 'none',
+                  background: workspaceView === 'standard' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                  color: workspaceView === 'standard' ? '#38bdf8' : '#94a3b8',
+                  fontWeight: workspaceView === 'standard' ? 600 : 500,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Standard View: Full Laboratory (Sidebar, ECG, 3D Heart)"
+              >
+                Standard
+              </button>
+              <button
+                type="button"
+                onClick={() => setWorkspaceView('clean')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '0.42rem 0.75rem',
+                  borderRadius: '6px',
+                  border: workspaceView === 'clean' ? '1px solid #38bdf8' : 'none',
+                  background: workspaceView === 'clean' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                  color: workspaceView === 'clean' ? '#38bdf8' : '#94a3b8',
+                  fontWeight: workspaceView === 'clean' ? 600 : 500,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Clean View: ECG + 3D Heart without configuration clutter"
+              >
+                Clean
+              </button>
+              <button
+                type="button"
+                onClick={() => setWorkspaceView('ecg-only')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '0.42rem 0.75rem',
+                  borderRadius: '6px',
+                  border: workspaceView === 'ecg-only' ? '1px solid #38bdf8' : 'none',
+                  background: workspaceView === 'ecg-only' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                  color: workspaceView === 'ecg-only' ? '#38bdf8' : '#94a3b8',
+                  fontWeight: workspaceView === 'ecg-only' ? 600 : 500,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="ECG Only View: Maximized ECG width with 3D Heart below"
+              >
+                ECG Only
+              </button>
+            </div>
+          )}
+
+          {/* Section Navigation Tabs */}
           <div
             style={{
               display: 'inline-flex',
@@ -436,1525 +508,171 @@ function App() {
         </div>
       </header>
 
-      {/* ───────────────────────── Desktop 3-Column Grid (Workspace) ───────────────────────── */}
+      {/* ───────────────────────── Workspace Layout Grid (Supports Standard | Clean | ECG Only) ───────────────────────── */}
       <div
-        className="dashboard-grid"
+        className={`workspace-grid view-${workspaceView}`}
         style={{
           display: viewMode === 'workspace' ? 'grid' : 'none',
-          gridTemplateColumns: 'minmax(200px, 220px) minmax(520px, 1fr) minmax(380px, 430px)',
+          gridTemplateColumns:
+            workspaceView === 'standard'
+              ? '230px minmax(0, 1fr) 360px'
+              : workspaceView === 'clean'
+              ? 'minmax(0, 1fr) 380px'
+              : '54px minmax(0, 1fr)',
           gap: '1.15rem',
           alignItems: 'stretch',
+          width: '100%',
         }}
       >
-        {/* ───────────────────────── Left Controls ───────────────────────── */}
-        <aside
-          className="card"
+        {/* 1. Left Control Panel / Collapsible Rail */}
+        <WorkspaceSidebar
+          workspaceView={workspaceView}
+          setWorkspaceView={setWorkspaceView}
+          records={records}
+          selectedRecord={selectedRecord}
+          setSelectedRecord={setSelectedRecord}
+          lowcut={lowcut}
+          setLowcut={setLowcut}
+          highcut={highcut}
+          setHighcut={setHighcut}
+          windowSize={windowSize}
+          setWindowSize={setWindowSize}
+          processSignal={processSignal}
+          loading={loading}
+          error={error}
+          showRefractory={showRefractory}
+          setShowRefractory={setShowRefractory}
+          showSearchback={showSearchback}
+          setShowSearchback={setShowSearchback}
+          showRejectedT={showRejectedT}
+          setShowRejectedT={setShowRejectedT}
+          showThresholds={showThresholds}
+          setShowThresholds={setShowThresholds}
+          showDelineation={showDelineation}
+          setShowDelineation={setShowDelineation}
+          activeStage={activeStage}
+          resetZoom={resetZoom}
+          focusBeat={focusBeat}
+          selectedBeatIndex={selectedBeatIndex}
+          cardStyle={cardStyle}
+        />
+
+        {/* 2. Center Column: Dominant ECG Signal Protagonist */}
+        <main
+          className="center-workspace"
           style={{
-            ...cardStyle,
-            padding: '0.85rem 0.8rem',
-            alignSelf: 'start',
-            position: 'sticky',
-            top: '1.15rem',
+            gridColumn: workspaceView === 'clean' ? '1' : '2',
+            gridRow: '1',
+            minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.45rem',
+            gap: '0.85rem',
           }}
         >
-          <div>
-            <h2
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                margin: 0,
-                fontSize: '1rem',
-              }}
-            >
-              <Activity size={18} />
-              Parameters
-            </h2>
-          </div>
-
-          <div className="form-group">
-            <label>MIT-BIH Record</label>
-            <select
-              className="form-control"
-              value={selectedRecord}
-              onChange={(e) => setSelectedRecord(e.target.value)}
-            >
-              {records.map((rec) => (
-                <option key={rec} value={rec}>
-                  Record {rec}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>
-              Bandpass Lowcut <span>{lowcut.toFixed(1)} Hz</span>
-            </label>
-            <input
-              type="range"
-              className="range-slider"
-              min="1"
-              max="10"
-              step="0.5"
-              value={lowcut}
-              onChange={(e) => setLowcut(Number(e.target.value))}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>
-              Bandpass Highcut <span>{highcut.toFixed(1)} Hz</span>
-            </label>
-            <input
-              type="range"
-              className="range-slider"
-              min="10"
-              max="30"
-              step="0.5"
-              value={highcut}
-              onChange={(e) => setHighcut(Number(e.target.value))}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>
-              Integration Window <span>{windowSize} ms</span>
-            </label>
-            <input
-              type="range"
-              className="range-slider"
-              min="80"
-              max="200"
-              step="10"
-              value={windowSize}
-              onChange={(e) => setWindowSize(Number(e.target.value))}
-            />
-          </div>
-
-          <button
-            className="btn"
-            onClick={processSignal}
-            disabled={loading}
-            style={{ width: '100%', marginTop: '0.2rem' }}
-          >
-            {loading ? 'Processing...' : 'Apply & Process'}
-          </button>
-
-          {error && (
-            <div
-              style={{
-                color: '#ef4444',
-                marginTop: '0.1rem',
-                fontSize: '0.82rem',
-                lineHeight: 1.4,
-              }}
-            >
-              Error: {error}
-            </div>
-          )}
-
-          <div
-            style={{
-              height: 1,
-              background: 'rgba(148,163,184,0.18)',
-              margin: '0.2rem 0 0.1rem',
-            }}
+          {/* Compact Diagnostic Strip */}
+          <DiagnosticBar
+            analysis={data?.analysis}
+            stages={data?.stages}
+            delineation={data?.delineation || []}
+            selectedBeatIndex={selectedBeatIndex}
+            workspaceView={workspaceView}
           />
 
-          {/* Playback Controls */}
+          {/* Large Dominant ECG Plot */}
           <div
+            ref={plotContainerRef}
+            className="plot-container"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              marginBottom: '-0.25rem',
+              position: 'relative',
+              height: workspaceView === 'ecg-only' ? 460 : 420,
+              minHeight: 380,
+              width: '100%',
+              flexShrink: 0,
+              overflow: 'hidden',
+              borderRadius: '14px',
             }}
           >
-            <ActivitySquare size={17} />
-            <h3
-              style={{
-                margin: 0,
-                fontSize: '0.92rem',
-                color: 'var(--text-primary, #f8fafc)',
-              }}
-            >
-              Playback Controls
-            </h3>
-          </div>
-
-          <div style={{ minWidth: 0 }}>
-            <PlaybackControls
-              state={playbackState}
-              controls={playbackControls}
-              duration={DURATION}
+            {loading && (
+              <div className="loading-overlay">
+                <Activity size={32} />
+                <span>Processing Signal...</span>
+              </div>
+            )}
+            <ECGPlot
+              data={data}
+              activeStage={activeStage}
+              selectedBeatIndex={selectedBeatIndex}
+              showRefractory={showRefractory}
+              showSearchback={showSearchback}
+              showRejectedT={showRejectedT}
+              showThresholds={showThresholds}
+              showDelineation={showDelineation}
+              windowSize={windowSize}
+              fs={fs}
+              xRange={xRange}
+              selectedRecord={selectedRecord}
+              stageConfig={STAGE_CONFIG}
+              onPlotClick={handlePlotClick}
+              onRelayout={handleRelayout}
+            />
+            <PlaybackCursor
+              currentTime={playbackState.currentTime}
+              xRange={xRange}
+              containerRef={plotContainerRef}
             />
           </div>
 
-          <div
-            style={{
-              marginTop: 'auto',
-              paddingTop: '0.1rem',
-              borderTop: '1px solid rgba(148,163,184,0.12)',
-            }}
-          >
-            <PlaybackStats
-              state={playbackState}
-              duration={DURATION}
-              totalBeats={rPeaks.length}
-            />
-          </div>
-        </aside>
+          {/* Horizontal Playback Transport Directly Underneath ECG Plot */}
+          <PlaybackControls
+            state={playbackState}
+            controls={playbackControls}
+            duration={DURATION}
+            totalBeats={rPeaks.length}
+          />
 
-        {/* ───────────────────────── Center Analytics Column ───────────────────────── */}
-        <main
-          style={{
-            minWidth: 0,
-            display: 'grid',
-            gridTemplateRows: 'auto minmax(0, 1fr)',
-            gap: '1.15rem',
-          }}
-        >
-          {/* 4 Compact Metric Cards */}
-          <div
-            className="metrics-grid"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-              gap: '0.85rem',
-              margin: 0,
-            }}
-          >
-            <div
-              className="metric-card"
-              style={{
-                ...cardStyle,
-                minHeight: 100,
-                padding: '1.05rem 1.15rem',
-                textAlign: 'left',
-              }}
-            >
-              <div className="metric-label">HEART RATE</div>
-              <div
-                className="metric-value"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                  gap: '0.6rem',
-                }}
-              >
-                <Heart size={25} color="#ef4444" />
-                {data?.analysis?.hr_bpm ? `${data.analysis.hr_bpm} BPM` : '--'}
-              </div>
-            </div>
+          {/* Compact Algorithm Transformation Pipeline */}
+          <AlgorithmPipelineBar
+            activeStage={activeStage}
+            setActiveStage={setActiveStage}
+            stageConfig={STAGE_CONFIG}
+            fs={fs}
+            windowSize={windowSize}
+          />
 
-            <div
-              className="metric-card"
-              style={{
-                ...cardStyle,
-                minHeight: 100,
-                padding: '1.05rem 1.15rem',
-                textAlign: 'left',
-              }}
-            >
-              <div className="metric-label">HRV (SDNN)</div>
-              <div
-                className="metric-value"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                  gap: '0.55rem',
-                }}
-              >
-                <Activity size={25} color="#60a5fa" />
-                {data?.analysis?.sdnn_ms ? `${data.analysis.sdnn_ms} ms` : '--'}
-              </div>
-            </div>
-
-            <div
-              className="metric-card"
-              style={{
-                ...cardStyle,
-                minHeight: 100,
-                padding: '1.05rem 1rem',
-                textAlign: 'left',
-              }}
-            >
-              <div className="metric-label">RHYTHM STATUS</div>
-              <div className="abnormalities" style={{ marginTop: '0.55rem' }}>
-                {data?.analysis?.abnormalities ? (
-                  data.analysis.abnormalities.map((abn, i) => (
-                    <div
-                      key={i}
-                      className={`alert ${abn.includes('Normal') ? 'success' : 'danger'}`}
-                      style={{
-                        margin: 0,
-                        fontSize: '0.82rem',
-                        justifyContent: 'flex-start',
-                      }}
-                    >
-                      {abn.includes('Normal') ? (
-                        <CheckCircle2 size={16} />
-                      ) : (
-                        <AlertTriangle size={16} />
-                      )}
-                      {abn}
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ color: 'var(--text-muted)' }}>Waiting for data...</div>
-                )}
-              </div>
-            </div>
-
-            <div
-              className="metric-card"
-              style={{
-                ...cardStyle,
-                minHeight: 100,
-                padding: '1.05rem 1rem',
-                textAlign: 'left',
-              }}
-            >
-              <div
-                className="metric-label"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                }}
-              >
-                <Cpu size={14} color="#f59e0b" />
-                PAN-TOMPKINS STATS
-              </div>
-              <div
-                style={{
-                  marginTop: '0.45rem',
-                  fontSize: '0.78rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.22rem',
-                  color: 'var(--text-secondary, #cbd5e1)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>QRS Beats:</span>
-                  <strong style={{ color: '#10b981' }}>
-                    {data?.stages?.detected_peaks?.length ?? '--'}
-                  </strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Search-back Beats:</span>
-                  <strong style={{ color: '#f59e0b' }}>
-                    {data?.stages?.searchback?.length || 0}
-                  </strong>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Rejected T-Waves:</span>
-                  <strong style={{ color: '#c084fc' }}>
-                    {data?.stages?.rejected_t_waves?.length || 0}
-                  </strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ECG Stage Workspace */}
-          <section
-            className="card"
-            style={{
-              ...cardStyle,
-              minHeight: 0,
-              padding: '1rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.85rem',
-              overflowY: 'auto',
-            }}
-          >
-            {/* Header: Title */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '1rem',
-                marginBottom: '0.1rem',
-                padding: '0 0.2rem',
-                flexWrap: 'wrap',
-              }}
-            >
-              <h2
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.55rem',
-                  margin: 0,
-                  fontSize: '1.15rem',
-                }}
-              >
-                <ActivitySquare size={22} color="#3b82f6" />
-                Algorithm Stages
-              </h2>
-
-              <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                Click tabs below to inspect intermediate transformation stages
-              </span>
-            </div>
-
-            {/* Stage Selector Grid with Compact Explanatory Subtitles */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-                gap: '0.45rem',
-                width: '100%',
-              }}
-            >
-              {Object.keys(STAGE_CONFIG).map((stage) => {
-                const config = STAGE_CONFIG[stage];
-                const isActive = activeStage === stage;
-                return (
-                  <button
-                    key={stage}
-                    type="button"
-                    onClick={() => setActiveStage(stage)}
-                    style={{
-                      background: isActive ? 'rgba(30, 41, 59, 0.95)' : 'rgba(15, 23, 42, 0.65)',
-                      border: isActive ? `1.5px solid ${config.color}` : '1px solid #334155',
-                      borderRadius: '10px',
-                      padding: '0.5rem 0.65rem',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      transition: 'all 0.18s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.2rem',
-                      boxShadow: isActive ? `0 0 12px ${config.color}33` : 'none',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span
-                        style={{
-                          fontSize: '0.88rem',
-                          fontWeight: 700,
-                          color: isActive ? config.color : '#f8fafc',
-                        }}
-                      >
-                        {config.title}
-                      </span>
-                      {isActive && (
-                        <span
-                          style={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: '50%',
-                            background: config.color,
-                            boxShadow: `0 0 6px ${config.color}`,
-                          }}
-                        />
-                      )}
-                    </div>
-                    <span
-                      style={{
-                        fontSize: '0.69rem',
-                        color: isActive ? '#cbd5e1' : '#94a3b8',
-                        lineHeight: 1.25,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                      title={config.subtitle}
-                    >
-                      {config.subtitle}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Diagnostic Overlays Toolbar */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'rgba(15, 23, 42, 0.75)',
-                border: '1px solid #334155',
-                borderRadius: '10px',
-                padding: '0.45rem 0.75rem',
-                flexWrap: 'wrap',
-                gap: '0.5rem',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.35rem', marginRight: '0.2rem' }}>
-                  <Layers size={14} color="#38bdf8" />
-                  OVERLAYS:
-                </span>
-
-                {/* Toggle: Refractory Intervals */}
-                <button
-                  type="button"
-                  onClick={() => setShowRefractory(!showRefractory)}
-                  style={{
-                    background: showRefractory ? 'rgba(239, 68, 68, 0.2)' : 'rgba(30, 41, 59, 0.5)',
-                    border: showRefractory ? '1px solid #ef4444' : '1px solid #334155',
-                    color: showRefractory ? '#fca5a5' : '#64748b',
-                    borderRadius: '6px',
-                    padding: '0.25rem 0.55rem',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    transition: 'all 0.15s ease',
-                  }}
-                  title="Toggle 200 ms physiological blanking shaded intervals after each accepted QRS"
-                >
-                  <span style={{ width: 8, height: 8, borderRadius: '2px', background: showRefractory ? '#ef4444' : '#475569', display: 'inline-block' }} />
-                  Refractory (200 ms)
-                </button>
-
-                {/* Toggle: Search-Back Detections */}
-                <button
-                  type="button"
-                  onClick={() => setShowSearchback(!showSearchback)}
-                  style={{
-                    background: showSearchback ? 'rgba(245, 158, 11, 0.2)' : 'rgba(30, 41, 59, 0.5)',
-                    border: showSearchback ? '1px solid #f59e0b' : '1px solid #334155',
-                    color: showSearchback ? '#fcd34d' : '#64748b',
-                    borderRadius: '6px',
-                    padding: '0.25rem 0.55rem',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    transition: 'all 0.15s ease',
-                  }}
-                  title="Toggle amber diamond marker and 'Search-back' label for recovered beats"
-                >
-                  <span style={{ width: 7, height: 7, transform: 'rotate(45deg)', background: showSearchback ? '#f59e0b' : '#475569', display: 'inline-block' }} />
-                  Search-Back
-                </button>
-
-                {/* Toggle: T-Wave Rejection */}
-                <button
-                  type="button"
-                  onClick={() => setShowRejectedT(!showRejectedT)}
-                  style={{
-                    background: showRejectedT ? 'rgba(192, 132, 252, 0.2)' : 'rgba(30, 41, 59, 0.5)',
-                    border: showRejectedT ? '1px solid #c084fc' : '1px solid #334155',
-                    color: showRejectedT ? '#e9d5ff' : '#64748b',
-                    borderRadius: '6px',
-                    padding: '0.25rem 0.55rem',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    transition: 'all 0.15s ease',
-                  }}
-                  title="Toggle hollow markers and tooltip for candidates rejected by T-wave discrimination"
-                >
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', border: `1.5px solid ${showRejectedT ? '#c084fc' : '#475569'}`, display: 'inline-block' }} />
-                  Rejected T-Waves
-                </button>
-
-                {/* Toggle: Adaptive Thresholds */}
-                <button
-                  type="button"
-                  onClick={() => setShowThresholds(!showThresholds)}
-                  style={{
-                    background: showThresholds ? 'rgba(16, 185, 129, 0.2)' : 'rgba(30, 41, 59, 0.5)',
-                    border: showThresholds ? '1px solid #10b981' : '1px solid #334155',
-                    color: showThresholds ? '#6ee7b7' : '#64748b',
-                    borderRadius: '6px',
-                    padding: '0.25rem 0.55rem',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    transition: 'all 0.15s ease',
-                  }}
-                  title="Toggle primary (TH1) and search-back (TH2) adaptive threshold curves on Integrated and Bandpass stages"
-                >
-                  <span style={{ width: 10, height: 2, background: showThresholds ? '#10b981' : '#475569', display: 'inline-block' }} />
-                  Thresholds
-                </button>
-
-                {/* Toggle: QRS Delineation (when on Original stage) */}
-                {activeStage === 'original' && (
-                  <button
-                    type="button"
-                    onClick={() => setShowDelineation(!showDelineation)}
-                    style={{
-                      background: showDelineation ? 'rgba(59, 130, 246, 0.2)' : 'rgba(30, 41, 59, 0.5)',
-                      border: showDelineation ? '1px solid #3b82f6' : '1px solid #334155',
-                      color: showDelineation ? '#93c5fd' : '#64748b',
-                      borderRadius: '6px',
-                      padding: '0.25rem 0.55rem',
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      transition: 'all 0.15s ease',
-                    }}
-                    title="Toggle Q, R, S, onset, and offset morphological markers on the raw ECG"
-                  >
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: showDelineation ? '#3b82f6' : '#475569', display: 'inline-block' }} />
-                    Morphology (QRS)
-                  </button>
-                )}
-              </div>
-
-              {/* Quick Clean View / Show All buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowRefractory(false);
-                    setShowSearchback(false);
-                    setShowRejectedT(false);
-                    setShowThresholds(false);
-                    setShowDelineation(false);
-                  }}
-                  style={{
-                    background: 'rgba(30, 41, 59, 0.6)',
-                    border: '1px solid #475569',
-                    color: '#94a3b8',
-                    borderRadius: '5px',
-                    padding: '0.22rem 0.5rem',
-                    fontSize: '0.68rem',
-                    cursor: 'pointer',
-                  }}
-                  title="Hide all overlays for a completely clean ECG waveform"
-                >
-                  Clean View
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowRefractory(true);
-                    setShowSearchback(true);
-                    setShowRejectedT(true);
-                    setShowThresholds(true);
-                    setShowDelineation(true);
-                  }}
-                  style={{
-                    background: 'rgba(30, 41, 59, 0.6)',
-                    border: '1px solid #475569',
-                    color: '#cbd5e1',
-                    borderRadius: '5px',
-                    padding: '0.22rem 0.5rem',
-                    fontSize: '0.68rem',
-                    cursor: 'pointer',
-                  }}
-                  title="Enable all diagnostic overlays"
-                >
-                  Show All
-                </button>
-              </div>
-            </div>
-
-            {/* ECG Plot Container */}
-            <div
-              ref={plotContainerRef}
-              className="plot-container"
-              style={{
-                position: 'relative',
-                minHeight: 330,
-                height: 360,
-                flexShrink: 0,
-                overflow: 'hidden',
-              }}
-            >
-              {loading && (
-                <div className="loading-overlay">
-                  <Activity size={32} />
-                  <span>Processing Signal...</span>
-                </div>
-              )}
-              <ECGPlot
-                data={data}
-                activeStage={activeStage}
-                selectedBeatIndex={selectedBeatIndex}
-                showRefractory={showRefractory}
-                showSearchback={showSearchback}
-                showRejectedT={showRejectedT}
-                showThresholds={showThresholds}
-                showDelineation={showDelineation}
-                windowSize={windowSize}
-                fs={fs}
-                xRange={xRange}
-                selectedRecord={selectedRecord}
-                stageConfig={STAGE_CONFIG}
-                onPlotClick={handlePlotClick}
-                onRelayout={handleRelayout}
-              />
-              <PlaybackCursor
-                currentTime={playbackState.currentTime}
-                xRange={xRange}
-                containerRef={plotContainerRef}
-              />
-            </div>
-
-            {/* Selected-Beat Information Panel & Pan-Tompkins Evidence */}
-            {data?.delineation?.length > 0 && (() => {
-              const selectedBeat = data.delineation[selectedBeatIndex] || data.delineation[0];
-              const totalBeats = data.delineation.length;
-              const isSearchback = selectedBeat?.detection_evidence?.method === 'searchback';
-              const domType = selectedBeat?.dominant_deflection_type
-                ? selectedBeat.dominant_deflection_type.toUpperCase()
-                : 'NORMAL';
-
-              const ev = selectedBeat?.detection_evidence || {};
-
-              return (
-                <div
-                  style={{
-                    background: 'rgba(15, 23, 42, 0.85)',
-                    border: '1px solid #334155',
-                    borderRadius: '12px',
-                    padding: '0.85rem 1rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.75rem',
-                  }}
-                >
-                  {/* Beat Navigation Bar */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '0.6rem',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc' }}>
-                        Beat #{(selectedBeat?.beat_index ?? 0) + 1}{' '}
-                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 400 }}>
-                          of {totalBeats}
-                        </span>
-                      </span>
-
-                      <span
-                        style={{
-                          fontSize: '0.74rem',
-                          fontWeight: 700,
-                          padding: '0.2rem 0.6rem',
-                          borderRadius: '6px',
-                          background: isSearchback
-                            ? 'rgba(245, 158, 11, 0.2)'
-                            : 'rgba(16, 185, 129, 0.2)',
-                          color: isSearchback ? '#fbbf24' : '#34d399',
-                          border: isSearchback
-                            ? '1px solid rgba(245, 158, 11, 0.4)'
-                            : '1px solid rgba(16, 185, 129, 0.4)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.3rem',
-                        }}
-                      >
-                        {isSearchback ? '★ Search-Back Recovery' : '✓ Primary Dual-Threshold'}
-                      </span>
-
-                      <span
-                        style={{
-                          fontSize: '0.72rem',
-                          fontWeight: 600,
-                          padding: '0.2rem 0.55rem',
-                          borderRadius: '6px',
-                          background: 'rgba(59, 130, 246, 0.18)',
-                          color: '#60a5fa',
-                          border: '1px solid rgba(59, 130, 246, 0.4)',
-                        }}
-                      >
-                        {domType} MORPHOLOGY
-                      </span>
-
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                        Fiducial:{' '}
-                        <strong style={{ color: '#e2e8f0' }}>
-                          {typeof selectedBeat?.pt_qrs_index === 'number'
-                            ? `${(selectedBeat.pt_qrs_index / fs).toFixed(3)} s (Sample ${selectedBeat.pt_qrs_index})`
-                            : '--'}
-                        </strong>
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        className="stage-btn"
-                        onClick={handlePrevBeat}
-                        disabled={selectedBeatIndex === 0}
-                        style={{
-                          padding: '0.32rem 0.6rem',
-                          fontSize: '0.78rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.2rem',
-                        }}
-                        title="Previous Beat"
-                      >
-                        <ChevronLeft size={14} /> Prev Beat
-                      </button>
-
-                      <button
-                        type="button"
-                        className="stage-btn"
-                        onClick={handleNextBeat}
-                        disabled={selectedBeatIndex === totalBeats - 1}
-                        style={{
-                          padding: '0.32rem 0.6rem',
-                          fontSize: '0.78rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.2rem',
-                        }}
-                        title="Next Beat"
-                      >
-                        Next Beat <ChevronRight size={14} />
-                      </button>
-
-                      <button
-                        type="button"
-                        className="stage-btn"
-                        onClick={() => focusBeat(selectedBeatIndex)}
-                        style={{
-                          padding: '0.32rem 0.6rem',
-                          fontSize: '0.78rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.2rem',
-                        }}
-                        title="Zoom to inspected beat"
-                      >
-                        <ZoomIn size={14} /> Focus Beat
-                      </button>
-
-                      <button
-                        type="button"
-                        className="stage-btn"
-                        onClick={resetZoom}
-                        style={{
-                          padding: '0.32rem 0.6rem',
-                          fontSize: '0.78rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.2rem',
-                        }}
-                        title="Reset view to 0-10s"
-                      >
-                        <RotateCcw size={14} /> Reset Zoom
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Primary 5 Evidence Cards (Signal Peak, Noise Peak, Threshold, RR Interval, Detection Method) */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-                      gap: '0.55rem',
-                    }}
-                  >
-                    {/* 1. Signal Peak Card */}
-                    <div
-                      style={{
-                        background: 'rgba(30, 41, 59, 0.7)',
-                        border: '1px solid rgba(16, 185, 129, 0.35)',
-                        borderRadius: '8px',
-                        padding: '0.65rem 0.75rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.2rem',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Activity size={12} />
-                        Signal Peak
-                      </div>
-                      <div style={{ fontSize: '0.96rem', fontWeight: 700, color: '#f8fafc' }}>
-                        SPKI: {ev.spki !== undefined ? ev.spki.toFixed(4) : '--'}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                        SPKF: <strong style={{ color: '#cbd5e1' }}>{ev.spkf !== undefined ? ev.spkf.toFixed(4) : '--'}</strong>
-                      </div>
-                      {ev.integrated_peak_val !== undefined && (
-                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                          Peak: {ev.integrated_peak_val.toFixed(4)}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 2. Noise Peak Card */}
-                    <div
-                      style={{
-                        background: 'rgba(30, 41, 59, 0.7)',
-                        border: '1px solid rgba(239, 68, 68, 0.35)',
-                        borderRadius: '8px',
-                        padding: '0.65rem 0.75rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.2rem',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.68rem', color: '#f87171', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <AlertTriangle size={12} />
-                        Noise Peak
-                      </div>
-                      <div style={{ fontSize: '0.96rem', fontWeight: 700, color: '#f8fafc' }}>
-                        NPKI: {ev.npki !== undefined ? ev.npki.toFixed(4) : '--'}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                        NPKF: <strong style={{ color: '#cbd5e1' }}>{ev.npkf !== undefined ? ev.npkf.toFixed(4) : '--'}</strong>
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                        Adaptive estimate
-                      </div>
-                    </div>
-
-                    {/* 3. Threshold Card */}
-                    <div
-                      style={{
-                        background: 'rgba(30, 41, 59, 0.7)',
-                        border: '1px solid rgba(245, 158, 11, 0.35)',
-                        borderRadius: '8px',
-                        padding: '0.65rem 0.75rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.2rem',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.68rem', color: '#fbbf24', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Sliders size={12} />
-                        Threshold
-                      </div>
-                      <div style={{ fontSize: '0.96rem', fontWeight: 700, color: '#f8fafc' }}>
-                        TH_I1: {ev.threshold_i1 !== undefined ? ev.threshold_i1.toFixed(4) : '--'}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                        TH_I2: <strong style={{ color: '#cbd5e1' }}>{ev.threshold_i2 !== undefined ? ev.threshold_i2.toFixed(4) : '--'}</strong>
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: isSearchback ? '#f59e0b' : '#10b981' }}>
-                        Active: {isSearchback ? 'TH2 (Search-back)' : 'TH1 (Primary)'}
-                      </div>
-                    </div>
-
-                    {/* 4. RR Interval Card */}
-                    <div
-                      style={{
-                        background: 'rgba(30, 41, 59, 0.7)',
-                        border: '1px solid rgba(167, 139, 250, 0.35)',
-                        borderRadius: '8px',
-                        padding: '0.65rem 0.75rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.2rem',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.68rem', color: '#a78bfa', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Heart size={12} />
-                        RR Interval
-                      </div>
-                      <div style={{ fontSize: '0.96rem', fontWeight: 700, color: '#f8fafc' }}>
-                        {ev.rr_interval_ms ? `${ev.rr_interval_ms.toFixed(1)} ms` : (selectedBeat?.beat_index === 0 ? 'Initial Beat' : '--')}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                        {ev.rr_interval_samples ? `${ev.rr_interval_samples} samples` : 'Learning phase'}
-                      </div>
-                      {ev.rr_interval_ms && (
-                        <div style={{ fontSize: '0.68rem', color: '#a78bfa' }}>
-                          Instant: ~{Math.round(60000 / ev.rr_interval_ms)} bpm
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 5. Detection Method Card */}
-                    <div
-                      style={{
-                        background: 'rgba(30, 41, 59, 0.7)',
-                        border: isSearchback ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid rgba(59, 130, 246, 0.35)',
-                        borderRadius: '8px',
-                        padding: '0.65rem 0.75rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.2rem',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.68rem', color: isSearchback ? '#fbbf24' : '#60a5fa', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Cpu size={12} />
-                        Detection Method
-                      </div>
-                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isSearchback ? '#fbbf24' : '#38bdf8' }}>
-                        {isSearchback ? 'Search-Back' : 'Primary Detection'}
-                      </div>
-                      <div style={{ fontSize: '0.7rem', color: '#94a3b8', lineHeight: 1.25 }}>
-                        {isSearchback ? 'Timeout > 1.66 × RR_AVG2' : 'Dual-threshold confirmed'}
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: '#10b981' }}>
-                        ✓ Refractory (&gt; 200 ms)
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Morphological Measurements (When on Original stage) */}
-                  {activeStage === 'original' && (
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-                        gap: '0.5rem',
-                        background: 'rgba(15, 23, 42, 0.5)',
-                        padding: '0.55rem 0.75rem',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(51, 65, 85, 0.4)',
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase' }}>Q Nadir</div>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#f59e0b', marginTop: '0.15rem' }}>
-                          {typeof selectedBeat?.q_time === 'number' ? `${selectedBeat.q_time.toFixed(3)} s` : 'None'}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase' }}>R Peak</div>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#ef4444', marginTop: '0.15rem' }}>
-                          {typeof selectedBeat?.r_time === 'number' ? `${selectedBeat.r_time.toFixed(3)} s` : 'None (QS)'}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase' }}>S Nadir</div>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#38bdf8', marginTop: '0.15rem' }}>
-                          {typeof selectedBeat?.s_time === 'number' ? `${selectedBeat.s_time.toFixed(3)} s` : 'None'}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase' }}>QRS Duration</div>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#10b981', marginTop: '0.15rem' }}>
-                          {typeof selectedBeat?.qrs_duration_ms === 'number' ? `${selectedBeat.qrs_duration_ms.toFixed(1)} ms` : '--'}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase' }}>Baseline Voltage</div>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#94a3b8', marginTop: '0.15rem' }}>
-                          {typeof selectedBeat?.isoelectric_baseline === 'number' ? `${selectedBeat.isoelectric_baseline.toFixed(3)} mV` : '--'}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Collapsible Detection Evidence Section */}
-                  <div
-                    style={{
-                      border: '1px solid rgba(51, 65, 85, 0.6)',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      background: 'rgba(15, 23, 42, 0.5)',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setIsEvidenceOpen(!isEvidenceOpen)}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        background: 'none',
-                        border: 'none',
-                        color: '#cbd5e1',
-                        padding: '0.5rem 0.8rem',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                        <Cpu size={14} color="#f59e0b" />
-                        Detailed Adaptive Evidence &amp; Pan-Tompkins State
-                      </span>
-                      {isEvidenceOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                    </button>
-
-                    {isEvidenceOpen && (
-                      <div
-                        style={{
-                          padding: '0.7rem 0.85rem',
-                          borderTop: '1px solid rgba(51, 65, 85, 0.4)',
-                          fontSize: '0.76rem',
-                          color: '#94a3b8',
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                          gap: '0.75rem',
-                        }}
-                      >
-                        <div>
-                          <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '0.2rem' }}>
-                            Integrated State (SPKI / NPKI)
-                          </strong>
-                          <div>Signal Level (SPKI): <span style={{ color: '#10b981' }}>{ev.spki !== undefined ? ev.spki.toFixed(4) : '--'}</span></div>
-                          <div>Noise Level (NPKI): <span style={{ color: '#f87171' }}>{ev.npki !== undefined ? ev.npki.toFixed(4) : '--'}</span></div>
-                          <div>Threshold I1 (Primary): <span style={{ color: '#f59e0b' }}>{ev.threshold_i1 !== undefined ? ev.threshold_i1.toFixed(4) : '--'}</span></div>
-                          <div>Threshold I2 (Search-back): <span style={{ color: '#fbbf24' }}>{ev.threshold_i2 !== undefined ? ev.threshold_i2.toFixed(4) : '--'}</span></div>
-                        </div>
-
-                        <div>
-                          <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '0.2rem' }}>
-                            Filtered State (SPKF / NPKF)
-                          </strong>
-                          <div>Signal Level (SPKF): <span style={{ color: '#10b981' }}>{ev.spkf !== undefined ? ev.spkf.toFixed(4) : '--'}</span></div>
-                          <div>Noise Level (NPKF): <span style={{ color: '#f87171' }}>{ev.npkf !== undefined ? ev.npkf.toFixed(4) : '--'}</span></div>
-                          <div>Threshold F1 (Primary): <span style={{ color: '#f59e0b' }}>{ev.threshold_f1 !== undefined ? ev.threshold_f1.toFixed(4) : '--'}</span></div>
-                          <div>Threshold F2 (Search-back): <span style={{ color: '#fbbf24' }}>{ev.threshold_f2 !== undefined ? ev.threshold_f2.toFixed(4) : '--'}</span></div>
-                        </div>
-
-                        <div>
-                          <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '0.2rem' }}>
-                            Classification Criteria &amp; Blanking
-                          </strong>
-                          <div>
-                            Refractory: <span style={{ color: '#10b981' }}>Passed (&gt; 200 ms physiological blanking)</span>
-                          </div>
-                          <div>
-                            T-Wave Test: <span style={{ color: '#10b981' }}>Passed (slope discrimination confirmed)</span>
-                          </div>
-                          <div>
-                            RR Regularity: <span style={{ color: '#cbd5e1' }}>{ev.rr_interval_ms ? `${ev.rr_interval_ms} ms (sample count: ${ev.rr_interval_samples ?? '--'})` : 'Initial beat'}</span>
-                          </div>
-                          <div style={{ marginTop: '0.25rem', color: isSearchback ? '#fbbf24' : '#34d399' }}>
-                            {isSearchback
-                              ? 'Recovered via Search-Back (PEAKI > TH_I2 & PEAKF > TH_F2)'
-                              : 'Confirmed Primary QRS (PEAKI > TH_I1 & PEAKF > TH_F1)'}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Diagnostic Legend */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-start',
-                      gap: '1.2rem',
-                      fontSize: '0.72rem',
-                      color: '#94a3b8',
-                      paddingTop: '0.25rem',
-                      borderTop: '1px solid rgba(51, 65, 85, 0.4)',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '2px', background: 'rgba(239, 68, 68, 0.25)', border: '1px solid #ef4444', display: 'inline-block' }} />
-                      <span><strong>200 ms Refractory</strong> (Blanking)</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <span style={{ width: 8, height: 8, transform: 'rotate(45deg)', background: '#f59e0b', display: 'inline-block' }} />
-                      <span><strong>Amber Diamond</strong> (Search-Back Detection)</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', border: '1.5px solid #c084fc', display: 'inline-block' }} />
-                      <span><strong>Hollow Purple</strong> (Rejected: T-wave)</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <span style={{ width: 12, height: 2, background: '#f59e0b', display: 'inline-block' }} />
-                      <span><strong>Threshold Lines</strong> (TH1 solid, TH2 dashed)</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* ───────────────────────── Selected Stage Explanation Panel ───────────────────────── */}
-            <div
-              style={{
-                background: 'rgba(15, 23, 42, 0.85)',
-                border: `1px solid ${currentStageInfo.color}55`,
-                borderRadius: '12px',
-                padding: '1rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.8rem',
-              }}
-            >
-              {/* Stage Header */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  borderBottom: '1px solid rgba(51, 65, 85, 0.5)',
-                  paddingBottom: '0.55rem',
-                  flexWrap: 'wrap',
-                  gap: '0.5rem',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <span
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: '50%',
-                      background: currentStageInfo.color,
-                      boxShadow: `0 0 8px ${currentStageInfo.color}`,
-                    }}
-                  />
-                  <span style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc' }}>
-                    {currentStageInfo.title} Stage Analysis
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '0.74rem',
-                      fontWeight: 500,
-                      padding: '0.2rem 0.55rem',
-                      borderRadius: '6px',
-                      background: currentStageInfo.badgeColor,
-                      color: currentStageInfo.color,
-                      border: `1px solid ${currentStageInfo.color}44`,
-                    }}
-                  >
-                    {currentStageInfo.subtitle}
-                  </span>
-                </div>
-
-                <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-                  Pan-Tompkins (1985) Pipeline Specification
-                </span>
-              </div>
-
-              {/* 3 Core Questions: Representation, Purpose, Detection Contribution */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                  gap: '0.85rem',
-                  fontSize: '0.8rem',
-                  lineHeight: 1.45,
-                }}
-              >
-                <div
-                  style={{
-                    background: 'rgba(30, 41, 59, 0.5)',
-                    padding: '0.7rem 0.8rem',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(51, 65, 85, 0.4)',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      color: currentStageInfo.color,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      marginBottom: '0.35rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                    }}
-                  >
-                    <Info size={13} />
-                    1. What This Signal Represents
-                  </div>
-                  <div style={{ color: '#e2e8f0' }}>{currentStageInfo.represents}</div>
-                </div>
-
-                <div
-                  style={{
-                    background: 'rgba(30, 41, 59, 0.5)',
-                    padding: '0.7rem 0.8rem',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(51, 65, 85, 0.4)',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      color: currentStageInfo.color,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      marginBottom: '0.35rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                    }}
-                  >
-                    <Cpu size={13} />
-                    2. Why Pan-Tompkins Uses It
-                  </div>
-                  <div style={{ color: '#e2e8f0' }}>{currentStageInfo.whyUsed}</div>
-                </div>
-
-                <div
-                  style={{
-                    background: 'rgba(30, 41, 59, 0.5)',
-                    padding: '0.7rem 0.8rem',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(51, 65, 85, 0.4)',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      color: currentStageInfo.color,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      marginBottom: '0.35rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                    }}
-                  >
-                    <Activity size={13} />
-                    3. Information Contributed to QRS Detection
-                  </div>
-                  <div style={{ color: '#e2e8f0' }}>{currentStageInfo.detectionContribution}</div>
-                </div>
-              </div>
-
-              {/* Numerical Settings & Parameters */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                  gap: '0.5rem',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  padding: '0.65rem 0.8rem',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(51, 65, 85, 0.4)',
-                }}
-              >
-                {currentSettings.map((setting, i) => (
-                  <div key={i}>
-                    <div
-                      style={{
-                        fontSize: '0.68rem',
-                        color: '#94a3b8',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.03em',
-                      }}
-                    >
-                      {setting.label}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        color: '#f8fafc',
-                        marginTop: '0.15rem',
-                      }}
-                    >
-                      {setting.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Special Visual Demonstration for the Moving-Window Integration Stage */}
-              {activeStage === 'integrated' && (
-                <div
-                  style={{
-                    background: 'rgba(16, 185, 129, 0.08)',
-                    border: '1px solid rgba(16, 185, 129, 0.35)',
-                    borderRadius: '8px',
-                    padding: '0.75rem 0.9rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.45rem',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '0.5rem',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        color: '#10b981',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                      }}
-                    >
-                      <Sliders size={14} />
-                      Visual Moving-Window Specification: {windowSize} ms Duration
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                      Window width N = round({windowSize} ms / 1000 × {fs} Hz) = {Math.round((windowSize / 1000) * fs)} samples
-                    </span>
-                  </div>
-
-                  {/* Window Graphic Bar */}
-                  <div
-                    style={{
-                      position: 'relative',
-                      height: '24px',
-                      background: 'rgba(15, 23, 42, 0.8)',
-                      borderRadius: '6px',
-                      border: '1px solid rgba(51, 65, 85, 0.6)',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${Math.min(100, Math.max(10, (windowSize / 200) * 100))}%`,
-                        height: '100%',
-                        background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.25), rgba(16, 185, 129, 0.6))',
-                        borderRight: '2px solid #10b981',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        color: '#ffffff',
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      Sliding Integrator Window [{windowSize} ms • {Math.round((windowSize / 1000) * fs)} samples]
-                    </div>
-                  </div>
-
-                  <div style={{ fontSize: '0.71rem', color: '#94a3b8', lineHeight: 1.35 }}>
-                    <strong>Scientific Provenance Note:</strong> The moving-window integrator consolidates multiple slope spikes
-                    into an integrated pulse envelope. Dual adaptive thresholds determine QRS timing from this envelope.
-                    Individual Q, R, and S landmarks are <em>not</em> produced by this integrated waveform; they are delineated
-                    downstream from the original ECG signal morphology.
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
+          {/* Inspected Beat Morphology & Progressive Evidence */}
+          <BeatInspectionPanel
+            data={data}
+            selectedBeatIndex={selectedBeatIndex}
+            setSelectedBeatIndex={setSelectedBeatIndex}
+            activeStage={activeStage}
+            fs={fs}
+            focusBeat={focusBeat}
+            resetZoom={resetZoom}
+            cardStyle={cardStyle}
+          />
         </main>
 
-        {/* ───────────────────────── Right 3D Heart Column ───────────────────────── */}
-        <section
-          className="card"
+        {/* 3. Physiological Companion: 3D Cardiac Conduction (Right in Standard/Clean, Below in ECG Only) */}
+        <div
           style={{
-            ...cardStyle,
-            padding: 0,
-            position: 'sticky',
-            top: '1.15rem',
-            alignSelf: 'start',
-            height: '580px',
-            maxHeight: 'calc(100vh - 2.5rem)',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
+            gridColumn:
+              workspaceView === 'standard'
+                ? '3'
+                : workspaceView === 'clean'
+                ? '2'
+                : '2',
+            gridRow: workspaceView === 'ecg-only' ? '2' : '1',
+            width: '100%',
+            minWidth: 0,
           }}
         >
-          <div
-            style={{
-              position: 'absolute',
-              top: '0.95rem',
-              left: '1rem',
-              right: '1rem',
-              zIndex: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              pointerEvents: 'none',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                color: '#fbbf24',
-                textShadow: '0 2px 6px rgba(0,0,0,0.55)',
-              }}
-            >
-              Live 3D Cardiac Conduction
-            </span>
-          </div>
-
-          <div style={{ flex: 1, minHeight: 0 }}>
-            <Canvas
-              frameloop={viewMode === 'workspace' ? 'always' : 'never'}
-              camera={{
-                position: [0, 0, 4.5],
-                fov: 42,
-              }}
-              dpr={[1, 2]}
-              gl={{ antialias: true, alpha: true }}
-            >
-              <ambientLight intensity={1.15} />
-              <directionalLight position={[5, 10, 7]} intensity={1.8} />
-              <directionalLight position={[-5, -5, -3]} intensity={0.75} />
-              <pointLight position={[0, 2, 4]} intensity={1.35} color="#ffffff" />
-
-              <Suspense
-                fallback={
-                  <mesh>
-                    <sphereGeometry args={[0.7, 16, 16]} />
-                    <meshStandardMaterial color="#b91c1c" wireframe transparent opacity={0.3} />
-                  </mesh>
-                }
-              >
-                <HeartModel
-                  phase={playbackState.phase || 'diastole'}
-                  progress={playbackState.phaseProgress || 0}
-                />
-              </Suspense>
-
-              <OrbitControls
-                enableZoom={true}
-                autoRotate={viewMode === 'workspace' && !playbackState.isPlaying}
-                autoRotateSpeed={0.55}
-                minDistance={2.9}
-                maxDistance={6}
-                target={[0, 0, 0]}
-              />
-            </Canvas>
-          </div>
-
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '0.85rem',
-              left: '1rem',
-              zIndex: 10,
-              fontSize: '0.68rem',
-              color: '#94a3b8',
-              background: 'rgba(15,23,42,0.72)',
-              padding: '0.3rem 0.55rem',
-              borderRadius: 7,
-              pointerEvents: 'none',
-            }}
-          >
-            Drag to rotate • Scroll to zoom
-          </div>
-        </section>
+          <CardiacConductionPanel
+            workspaceView={workspaceView}
+            playbackState={playbackState}
+            viewMode={viewMode}
+            cardStyle={cardStyle}
+          />
+        </div>
       </div>
 
       {/* ───────────────────────── Interactive ECG Fundamentals Educational Panel ───────────────────────── */}
@@ -1990,41 +708,46 @@ function App() {
 
       {/* Responsive layout overrides */}
       <style>{`
-        @media (max-width: 1200px) {
-          .dashboard-grid {
-            grid-template-columns: minmax(200px, 220px) minmax(0, 1fr) !important;
-          }
-
-          .dashboard-grid > aside {
-            position: static !important;
-          }
-
-          .dashboard-grid > section:last-child {
-            grid-column: 1 / -1;
-            height: 560px !important;
-            min-height: 560px !important;
-            position: static !important;
+        @media (max-width: 1280px) {
+          .workspace-grid.view-standard {
+            grid-template-columns: 210px minmax(0, 1fr) 320px !important;
           }
         }
 
-        @media (max-width: 800px) {
+        @media (max-width: 1024px) {
+          .workspace-grid.view-standard {
+            grid-template-columns: 200px minmax(0, 1fr) !important;
+          }
+
+          .workspace-grid.view-standard > div:last-child {
+            grid-column: 1 / -1 !important;
+          }
+
+          .workspace-grid.view-clean {
+            grid-template-columns: minmax(0, 1fr) !important;
+          }
+
+          .workspace-grid.view-clean > div:last-child {
+            grid-column: 1 / -1 !important;
+          }
+        }
+
+        @media (max-width: 768px) {
           .header {
             flex-direction: column;
             align-items: flex-start !important;
           }
 
-          .dashboard-grid {
+          .workspace-grid.view-standard,
+          .workspace-grid.view-clean,
+          .workspace-grid.view-ecg-only {
             grid-template-columns: 1fr !important;
           }
 
-          .dashboard-grid > section:last-child {
-            grid-column: auto;
-            height: 520px !important;
-            min-height: 520px !important;
-          }
-
-          .metrics-grid {
-            grid-template-columns: 1fr !important;
+          .workspace-grid.view-standard > aside,
+          .workspace-grid.view-clean > aside,
+          .workspace-grid.view-ecg-only > aside {
+            position: static !important;
           }
         }
       `}</style>
