@@ -22,11 +22,11 @@ import {
 export default function BeatInspectionPanel({
   data,
   selectedBeatIndex = 0,
-  setSelectedBeatIndex = () => {},
+  setSelectedBeatIndex = () => { },
   activeStage = 'original',
   fs = 360,
-  focusBeat = () => {},
-  resetZoom = () => {},
+  focusBeat = () => { },
+  resetZoom = () => { },
   cardStyle = {},
 }) {
   const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
@@ -131,7 +131,20 @@ export default function BeatInspectionPanel({
             className="stage-btn"
             onClick={handlePrev}
             disabled={selectedBeatIndex === 0}
-            style={{ padding: '0.28rem 0.55rem', fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+            style={{
+              padding: '0.32rem 0.6rem',
+              fontSize: '0.74rem',
+              fontWeight: 500,
+              background: selectedBeatIndex === 0 ? 'rgba(15, 23, 42, 0.6)' : 'rgba(30, 41, 59, 0.8)',
+              color: selectedBeatIndex === 0 ? '#64748b' : '#f1f5f9',
+              border: '1px solid #334155',
+              borderRadius: '6px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.2rem',
+              cursor: selectedBeatIndex === 0 ? 'not-allowed' : 'pointer',
+              opacity: selectedBeatIndex === 0 ? 0.45 : 1,
+            }}
           >
             <ChevronLeft size={13} /> Prev
           </button>
@@ -141,7 +154,20 @@ export default function BeatInspectionPanel({
             className="stage-btn"
             onClick={handleNext}
             disabled={selectedBeatIndex === totalBeats - 1}
-            style={{ padding: '0.28rem 0.55rem', fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+            style={{
+              padding: '0.32rem 0.6rem',
+              fontSize: '0.74rem',
+              fontWeight: 500,
+              background: selectedBeatIndex === totalBeats - 1 ? 'rgba(15, 23, 42, 0.6)' : 'rgba(30, 41, 59, 0.8)',
+              color: selectedBeatIndex === totalBeats - 1 ? '#64748b' : '#f1f5f9',
+              border: '1px solid #334155',
+              borderRadius: '6px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.2rem',
+              cursor: selectedBeatIndex === totalBeats - 1 ? 'not-allowed' : 'pointer',
+              opacity: selectedBeatIndex === totalBeats - 1 ? 0.45 : 1,
+            }}
           >
             Next <ChevronRight size={13} />
           </button>
@@ -150,7 +176,19 @@ export default function BeatInspectionPanel({
             type="button"
             className="stage-btn"
             onClick={() => focusBeat(selectedBeatIndex)}
-            style={{ padding: '0.28rem 0.55rem', fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+            style={{
+              padding: '0.32rem 0.6rem',
+              fontSize: '0.74rem',
+              fontWeight: 500,
+              background: 'rgba(30, 41, 59, 0.8)',
+              color: '#f1f5f9',
+              border: '1px solid #334155',
+              borderRadius: '6px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              cursor: 'pointer',
+            }}
           >
             <ZoomIn size={13} /> Zoom Beat
           </button>
@@ -159,7 +197,19 @@ export default function BeatInspectionPanel({
             type="button"
             className="stage-btn"
             onClick={resetZoom}
-            style={{ padding: '0.28rem 0.55rem', fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+            style={{
+              padding: '0.32rem 0.6rem',
+              fontSize: '0.74rem',
+              fontWeight: 500,
+              background: 'rgba(30, 41, 59, 0.8)',
+              color: '#f1f5f9',
+              border: '1px solid #334155',
+              borderRadius: '6px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              cursor: 'pointer',
+            }}
           >
             <RotateCcw size={13} /> 0-10s
           </button>

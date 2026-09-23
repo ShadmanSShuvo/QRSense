@@ -11,6 +11,7 @@ import {
   Check,
   Eye,
   Settings,
+  Zap,
 } from 'lucide-react';
 
 /**
@@ -24,32 +25,32 @@ import {
  */
 export default function WorkspaceSidebar({
   workspaceView = 'standard',
-  setWorkspaceView = () => {},
+  setWorkspaceView = () => { },
   records = [],
   selectedRecord = '100',
-  setSelectedRecord = () => {},
+  setSelectedRecord = () => { },
   lowcut = 5.0,
-  setLowcut = () => {},
+  setLowcut = () => { },
   highcut = 15.0,
-  setHighcut = () => {},
+  setHighcut = () => { },
   windowSize = 150,
-  setWindowSize = () => {},
-  processSignal = () => {},
+  setWindowSize = () => { },
+  processSignal = () => { },
   loading = false,
   error = null,
   showRefractory = true,
-  setShowRefractory = () => {},
+  setShowRefractory = () => { },
   showSearchback = true,
-  setShowSearchback = () => {},
+  setShowSearchback = () => { },
   showRejectedT = true,
-  setShowRejectedT = () => {},
+  setShowRejectedT = () => { },
   showThresholds = true,
-  setShowThresholds = () => {},
+  setShowThresholds = () => { },
   showDelineation = true,
-  setShowDelineation = () => {},
+  setShowDelineation = () => { },
   activeStage = 'original',
-  resetZoom = () => {},
-  focusBeat = () => {},
+  resetZoom = () => { },
+  focusBeat = () => { },
   selectedBeatIndex = 0,
   cardStyle = {},
 }) {
@@ -178,7 +179,15 @@ export default function WorkspaceSidebar({
                   className="form-control"
                   value={selectedRecord}
                   onChange={(e) => setSelectedRecord(e.target.value)}
-                  style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem' }}
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '0.35rem 0.5rem',
+                    background: '#0f172a',
+                    color: '#f8fafc',
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
                 >
                   {records.map((rec) => (
                     <option key={rec} value={rec}>
@@ -234,15 +243,32 @@ export default function WorkspaceSidebar({
               </div>
 
               <button
+                type="button"
                 className="btn"
                 onClick={() => {
                   processSignal();
                   setActivePopover(null);
                 }}
                 disabled={loading}
-                style={{ marginTop: '0.3rem', padding: '0.45rem', fontSize: '0.78rem' }}
+                style={{
+                  marginTop: '0.35rem',
+                  padding: '0.45rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(56, 189, 248, 0.45)',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem',
+                }}
               >
-                {loading ? 'Processing...' : 'Apply & Process'}
+                <Zap size={13} />
+                <span>{loading ? 'Processing...' : 'Apply & Process'}</span>
               </button>
             </div>
           )}
@@ -468,7 +494,15 @@ export default function WorkspaceSidebar({
           className="form-control"
           value={selectedRecord}
           onChange={(e) => setSelectedRecord(e.target.value)}
-          style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+          style={{
+            fontSize: '0.82rem',
+            padding: '0.42rem 0.65rem',
+            background: '#0f172a',
+            color: '#f8fafc',
+            border: '1px solid #334155',
+            borderRadius: '8px',
+            cursor: 'pointer',
+          }}
         >
           {records.map((rec) => (
             <option key={rec} value={rec}>
@@ -524,12 +558,31 @@ export default function WorkspaceSidebar({
       </div>
 
       <button
+        type="button"
         className="btn"
         onClick={processSignal}
         disabled={loading}
-        style={{ width: '100%', padding: '0.5rem', fontSize: '0.84rem' }}
+        style={{
+          width: '100%',
+          padding: '0.55rem',
+          fontSize: '0.84rem',
+          fontWeight: 600,
+          background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+          color: '#ffffff',
+          border: '1px solid rgba(56, 189, 248, 0.45)',
+          borderRadius: '8px',
+          boxShadow: '0 2px 10px rgba(14, 165, 233, 0.3)',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          opacity: loading ? 0.7 : 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.4rem',
+          transition: 'all 0.15s ease',
+        }}
       >
-        {loading ? 'Processing...' : 'Apply & Process'}
+        <Zap size={14} />
+        <span>{loading ? 'Processing...' : 'Apply & Process'}</span>
       </button>
 
       {error && (
@@ -648,12 +701,10 @@ export default function WorkspaceSidebar({
               justifyContent: 'center',
               gap: '0.3rem',
             }}
-            title="Focus Current Beat"
-            title={`Focus Current Beat #${selectedBeatIndex + 1}`}
+            title={`Focus Beat #${selectedBeatIndex + 1}`}
           >
             <ZoomIn size={12} />
-            <span>Focus Beat</span>
-            <span>Focus Beat #{selectedBeatIndex + 1}</span>
+            <span>Beat #{selectedBeatIndex + 1}</span>
           </button>
         </div>
 
