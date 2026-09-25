@@ -167,13 +167,23 @@ export default function CardiacConductionPanel({
             />
           </Suspense>
 
-          <OrbitControls
+          {/* <OrbitControls
             enableZoom={true}
             autoRotate={viewMode === 'workspace' && !playbackState.isPlaying}
-            autoRotateSpeed={0.55}
+            autoRotateSpeed={0.2}
             minDistance={2.9}
             maxDistance={6}
             target={[0, 0, 0]}
+          /> */}
+          <OrbitControls
+            enableZoom={true}
+            autoRotate={viewMode === 'workspace' && !playbackState.isPlaying}
+            autoRotateSpeed={0.2}
+            minDistance={2.9}
+            maxDistance={6}
+            target={[0, 0, 0]}
+            minAzimuthAngle={-Math.PI / 4}
+            maxAzimuthAngle={Math.PI / 4}
           />
         </Canvas>
 

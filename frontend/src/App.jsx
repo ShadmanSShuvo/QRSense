@@ -350,15 +350,15 @@ function App() {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '1.5rem',
-          marginBottom: '1.1rem',
+          marginBottom: '.1rem',
         }}
       >
         <div>
-          <h1 style={{ marginBottom: '0.2rem' }}>Pan-Tompkins Algorithm</h1>
+          <h2 style={{ marginBottom: '0rem' }}>Pan-Tompkins Algorithm</h2>
           <p style={{ margin: 0 }}>Advanced QRS Detection &amp; Cardiac Conduction Visualization</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '.75rem', flexShrink: 0, alignItems: 'center' }}>
           {/* Workspace Views Selector: Standard | Clean | ECG Only */}
           {viewMode === 'workspace' && (
             <div
@@ -553,7 +553,7 @@ function App() {
               : workspaceView === 'clean'
               ? 'minmax(0, 1fr) 380px'
               : '54px minmax(0, 1fr)',
-          gap: '1.15rem',
+          gap: '1.5rem',
           alignItems: 'stretch',
           width: '100%',
         }}
@@ -600,7 +600,7 @@ function App() {
             minWidth: 0,
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.85rem',
+            gap: '0.25rem',
           }}
         >
           {/* Compact Diagnostic Strip */}
