@@ -182,8 +182,8 @@ export default function CardiacConductionPanel({
             minDistance={2.9}
             maxDistance={6}
             target={[0, 0, 0]}
-            minAzimuthAngle={-Math.PI / 4}
-            maxAzimuthAngle={Math.PI / 4}
+            minAzimuthAngle={-Math.PI / 6}
+            maxAzimuthAngle={Math.PI / 6}
           />
         </Canvas>
 
